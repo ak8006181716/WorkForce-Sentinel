@@ -222,5 +222,6 @@ Manually trigger the 10-minute unacknowledged violation escalation background ch
 
 ## Utility Endpoints
 
+- `POST /seed` or `GET /seed` (Development): Triggers fresh database wipe and re-seeds from `workers_dataset.xlsx`.
 - `GET /sites` (Protected): Active site dropdown list.
 - `GET /workers?siteId=<ID>` (Protected): Active workers list for selection dropdowns.

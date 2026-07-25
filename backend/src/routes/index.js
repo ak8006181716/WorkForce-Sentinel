@@ -7,6 +7,7 @@ import Site from '../models/site.model.js';
 import Worker from '../models/worker.model.js';
 import { protect } from '../middleware/auth.middleware.js';
 import ApiResponse from '../utils/apiResponse.js';
+import { runSeeder } from '../seeders/seed.js';
 
 const router = express.Router();
 
@@ -14,6 +15,19 @@ router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
 router.use('/supervisor', supervisorRoutes);
 router.use('/simulation', simulationRoutes);
+
+// Temporary Seed Endpoint
+const handleSeed = async (req, res, next) => {
+  try {
+    const stats = await runSeeder();
+    return ApiResponse.success(res, stats, 'Database re-seeded successfully');
+  } catch (err) {
+    next(err);
+  }
+};
+
+router.post('/seed', handleSeed);
+router.get('/seed', handleSeed);
 
 // Public/Protected Utility endpoints for Dropdowns (Sites & Workers)
 router.get('/sites', protect, async (req, res, next) => {
