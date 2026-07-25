@@ -2,9 +2,6 @@ import AdminService from '../services/admin.service.js';
 import ApiResponse from '../utils/apiResponse.js';
 
 class AdminController {
-  /**
-   * GET /api/v1/admin/dashboard
-   */
   static async getDashboard(req, res, next) {
     try {
       const data = await AdminService.getDashboardMetrics();
@@ -14,9 +11,6 @@ class AdminController {
     }
   }
 
-  /**
-   * GET /api/v1/admin/supervisors
-   */
   static async getSupervisors(req, res, next) {
     try {
       const result = await AdminService.getSupervisors(req.query);
@@ -26,9 +20,6 @@ class AdminController {
     }
   }
 
-  /**
-   * POST /api/v1/admin/supervisors
-   */
   static async createSupervisor(req, res, next) {
     try {
       const supervisor = await AdminService.createSupervisor(req.body);
@@ -38,9 +29,6 @@ class AdminController {
     }
   }
 
-  /**
-   * PUT /api/v1/admin/supervisors/:id
-   */
   static async updateSupervisor(req, res, next) {
     try {
       const supervisor = await AdminService.updateSupervisor(req.params.id, req.body);
@@ -50,9 +38,6 @@ class AdminController {
     }
   }
 
-  /**
-   * DELETE /api/v1/admin/supervisors/:id
-   */
   static async deleteSupervisor(req, res, next) {
     try {
       const result = await AdminService.deleteSupervisor(req.params.id);
@@ -62,9 +47,6 @@ class AdminController {
     }
   }
 
-  /**
-   * GET /api/v1/admin/alerts
-   */
   static async getAlerts(req, res, next) {
     try {
       const result = await AdminService.getEscalatedAlerts(req.query);
@@ -74,9 +56,6 @@ class AdminController {
     }
   }
 
-  /**
-   * GET /api/v1/admin/insights
-   */
   static async getInsights(req, res, next) {
     try {
       const insights = await AdminService.getInsights();

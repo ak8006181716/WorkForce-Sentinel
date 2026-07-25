@@ -1,111 +1,89 @@
-# System Architecture & Project Documentation
+# System Architecture & Design Documentation
 
-## Workforce Management System (IoT PPE Monitoring & Escalation)
+## System Architecture
 
-This document details the high-level architecture, design decisions, automated escalation workflow engine, security model, and evaluation self-assessment for the Workforce Management System.
-
----
-
-## 1. System Architecture Overview
-
-The system follows a modern decoupled client-server architecture built for scalability, reliability, and real-time operational response.
+The application uses a decoupled client-server architecture. The frontend is built with React 19 and Vite, talking to a Node.js / Express backend backed by MongoDB.
 
 ```mermaid
 graph TD
-    A[IoT Safety Devices / Wearables] -->|Telemetry Stream| B[Backend Server - Express.js]
-    B -->|Ingest & Query| C[(MongoDB Database)]
-    B -->|Background Cron Engine| D[10-Min Escalation Service]
+    A[IoT Wearables Telemetry] -->|Telemetry Events| B[Express API Server]
+    B -->|Mongoose Queries| C[(MongoDB)]
+    B -->|Background Interval Job| D[10-Min Escalation Service]
     
-    E[Frontend Portal - React 19 + Vite] -->|REST APIs + Bearer JWT| B
+    E[React Frontend App] -->|REST API + Bearer JWT| B
     
-    subgraph Frontend Portals
-        F[Admin Dashboard]
-        G[Supervisor Dashboard]
-        H[Data Insights & Analytics]
+    subgraph Portals
+        F[Admin Dashboard & Alerts]
+        G[Supervisor Dashboard & Violations]
+        H[Insights & Analytics]
     end
 
     E --- F
     E --- G
     E --- H
 
-    D -->|Updates Status to ESCALATED| C
-    F -->|Fetches Unacknowledged > 10m| B
+    D -->|Updates PENDING > 10m to ESCALATED| C
+    F -->|Queries ESCALATED Alerts| B
 ```
 
 ---
 
-## 2. Core Functional Workflows
-
-### 2.1 The 10-Minute Automated Alert Escalation Workflow
-
-The alert workflow guarantees safety accountability across site operations:
+## The 10-Minute Alert Escalation Workflow
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Worker as Field Worker (IoT Device)
+    actor Worker as Field Worker IoT Device
     actor Supervisor as Site Supervisor
-    participant Backend as Express Backend
-    participant DB as MongoDB
+    participant Backend as Express Backend Service
+    participant DB as MongoDB Instance
     actor Admin as Administrator
 
-    Worker->>Backend: Non-compliance event detected (e.g. Helmet Removed)
-    Backend->>DB: Save Violation (Status = PENDING, timestamp = Now)
-    Backend-->>Supervisor: Reflects on Supervisor Violations Page
+    Worker->>Backend: Non-compliance event detected
+    Backend->>DB: Save Violation (status = PENDING, timestamp = Now)
+    Backend-->>Supervisor: Appears on Supervisor Violations View
     
-    alt Scenario A: Supervisor Acknowledges within 10 minutes
-        Supervisor->>Backend: Clicks "Acknowledge" with resolution notes
-        Backend->>DB: Update Status = ACKNOWLEDGED, acknowledgedAt = Now
-    else Scenario B: Supervisor fails to acknowledge after 10 minutes
-        Note over Backend, DB: Escalation Engine runs (Every 30s)
-        Backend->>DB: Scan PENDING where timestamp <= Now - 10 mins
-        Backend->>DB: Update Status = ESCALATED, escalatedToAdminAt = Now
-        Backend-->>Admin: Escalated alert appears on Admin Alerts Page
+    alt Supervisor Acknowledges within 10 minutes
+        Supervisor->>Backend: Clicks "Acknowledge" + enters notes
+        Backend->>DB: Update status = ACKNOWLEDGED, acknowledgedAt = Now
+    else Supervisor does not acknowledge within 10 minutes
+        Note over Backend, DB: Escalation Cron Job runs (every 30s)
+        Backend->>DB: Find PENDING violations where timestamp <= Now - 10m
+        Backend->>DB: Set status = ESCALATED, escalatedToAdminAt = Now
+        Backend-->>Admin: Appears on Admin Alerts Page
     end
 ```
 
-1. **Detection**: Worker's IoT device sends telemetry regarding missing safety gear (`HELMET`, `VEST`, `GLOVES`, `SAFETY_GLASSES`, `BOOTS`, `HARNESS`).
-2. **Supervisor Notification**: The violation is immediately visible on the assigned Supervisor's dashboard under **Violations** (`PENDING` status).
-3. **Acknowledgment Window**:
-   - If the Supervisor acknowledges the incident within 10 minutes, status changes to `ACKNOWLEDGED`.
-   - If the Supervisor **fails to acknowledge within 10 minutes**, the automated **Escalation Engine** changes the incident status to `ESCALATED`.
-4. **Admin Escalation**: All `ESCALATED` incidents immediately populate the **Admin Alerts Page** for executive safety review and accountability auditing.
+### How the Workflow Operates
+
+1. **Detection**: An IoT device or simulation triggers a non-compliance event (e.g. missing helmet or harness).
+2. **Supervisor Queue**: The incident immediately appears on the assigned supervisor's Violations page with a status of `PENDING`.
+3. **Acknowledgment**:
+   - If the supervisor acknowledges the incident within 10 minutes, the status updates to `ACKNOWLEDGED`.
+   - If the incident remains unacknowledged for 10 minutes, the background escalation job updates its status to `ESCALATED`.
+4. **Admin Escalation**: Escalated incidents are displayed on the Admin Alerts page for executive oversight.
 
 ---
 
-## 3. Role-Based Access Control (RBAC) Matrix
+## Role-Based Access Control (RBAC) Matrix
 
-| Module / Action | Administrator | Site Supervisor | Unauthenticated User |
+| Feature / Action | Admin | Supervisor | Public |
 | :--- | :---: | :---: | :---: |
-| **Login / Authentication** | ✅ | ✅ | ✅ |
-| **Admin Dashboard (Global Metrics)** | ✅ | ❌ | ❌ |
-| **Supervisor Management (Create/Edit/Assign)** | ✅ | ❌ | ❌ |
-| **Admin Alerts Page (Escalated >10m)** | ✅ | ❌ | ❌ |
-| **Data Insights (Analytics Charts)** | ✅ | ❌ | ❌ |
-| **Supervisor Dashboard (Site Metrics)** | ✅ | ✅ | ❌ |
-| **Violations View (Site-scoped)** | ✅ | ✅ | ❌ |
-| **Acknowledge Incident** | ✅ | ✅ | ❌ |
-| **Export Audit Report (CSV)** | ✅ | ✅ | ❌ |
-| **Simulate IoT Event Trigger** | ✅ | ✅ | ❌ |
+| Auth / Login | Yes | Yes | Yes |
+| Admin Dashboard & Metrics | Yes | No | No |
+| Supervisor Management | Yes | No | No |
+| Admin Alerts Page | Yes | No | No |
+| Data Insights & Charts | Yes | No | No |
+| Supervisor Dashboard | Yes | Yes | No |
+| Site Violations List | Yes | Yes | No |
+| Acknowledge Violation | Yes | Yes | No |
+| Export CSV Report | Yes | Yes | No |
+| Trigger Simulation Event | Yes | Yes | No |
 
 ---
 
-## 4. Engineering & Design Decisions
+## Key Implementation Details
 
-1. **ES Modules Architecture**: Node.js clean modern ES module imports (`import`/`export`) for standardized component organization.
-2. **Asynchronous Escalation Cron**: Background `setInterval` task scanning indexed fields (`status: 'PENDING', timestamp: { $lte: tenMinutesAgo }`) ensuring zero latency impact on HTTP request threads.
-3. **Data Dataset Integrity**: Parser dynamically reads `workers_dataset.xlsx`, preserving actual worker records while creating realistic linked relational documents (`Site`, `Worker`, `Violation`).
-4. **Resilient Frontend State**: JWT token stored with automatic session restoration and role-based client route protection using React Router.
-5. **Modern UI Design System**: Dark-themed palette, high-contrast badges (Critical, High, Medium, Low severities), smooth transitions, responsive grid layouts, and interactive Recharts visualizations.
-
----
-
-## 5. Evaluation Criteria Self-Assessment
-
-| Evaluation Criteria | Implementation Details |
-| :--- | :--- |
-| **Technical Correctness & Completeness** | 100% functional requirements met: JWT login, Admin portal, Supervisor portal, 10-min escalation engine, CSV report exports, live simulation stream. |
-| **Code Quality & Best Practices** | Clean layer separation (`routes` -> `controllers` -> `services` -> `models`), centralized error handler middleware, custom `ApiError` and `ApiResponse` utilities. |
-| **System Architecture & Design** | Indexed database schemas, role-scoped APIs, automated escalation service background worker. |
-| **User Experience (UX/UI)** | Responsive Tailwind CSS v4 styling, visual badge indicators, clean pagination, quick search & modal popups. |
-| **Documentation Quality** | Includes complete `README.md`, `DATABASE_SCHEMA.md` (with ER Diagram), `API_DOCUMENTATION.md`, and `PROJECT_DOCUMENTATION.md`. |
+1. **Background Escalation Job**: A `setInterval` job in `server.js` executes `EscalationService.checkAndEscalateViolations()` every 30 seconds. It updates `PENDING` records older than 10 minutes using `updateMany()`, which keeps database IO efficient.
+2. **Dataset Import**: The `seed.js` script reads `workers_dataset.xlsx` using SheetJS (`xlsx`), maps each row to a `Worker` document, assigns site links, and sets up matching initial data.
+3. **Frontend Role Routing**: `ProtectedRoute.jsx` checks the user's role stored in `AuthContext` to prevent unauthorized client route access.

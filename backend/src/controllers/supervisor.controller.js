@@ -2,9 +2,6 @@ import SupervisorService from '../services/supervisor.service.js';
 import ApiResponse from '../utils/apiResponse.js';
 
 class SupervisorController {
-  /**
-   * GET /api/v1/supervisor/dashboard
-   */
   static async getDashboard(req, res, next) {
     try {
       const data = await SupervisorService.getDashboardMetrics(req.user);
@@ -14,9 +11,6 @@ class SupervisorController {
     }
   }
 
-  /**
-   * GET /api/v1/supervisor/violations
-   */
   static async getViolations(req, res, next) {
     try {
       const result = await SupervisorService.getViolations(req.query, req.user);
@@ -26,9 +20,6 @@ class SupervisorController {
     }
   }
 
-  /**
-   * PATCH /api/v1/supervisor/violations/:id/acknowledge
-   */
   static async acknowledgeViolation(req, res, next) {
     try {
       const { notes } = req.body;
@@ -39,13 +30,9 @@ class SupervisorController {
     }
   }
 
-  /**
-   * GET /api/v1/supervisor/reports/export
-   */
   static async exportReport(req, res, next) {
     try {
       const csvData = await SupervisorService.exportViolationsCSV(req.query, req.user);
-      
       const fileName = `ppe_violations_report_${new Date().toISOString().split('T')[0]}.csv`;
       
       res.setHeader('Content-Type', 'text/csv');

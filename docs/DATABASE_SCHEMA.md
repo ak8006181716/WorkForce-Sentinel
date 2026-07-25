@@ -1,12 +1,10 @@
-# Database Schema Documentation
+# Database Schema & Data Models
 
-## Workforce Management & IoT PPE Monitoring System
-
-This document provides a comprehensive overview of the database design, data models, schema relationships, index strategies, and data ingestion pipeline for the Workforce Management System.
+This document outlines the database structure, entity relationships, index configurations, and dataset ingestion logic used in the Workforce Management System.
 
 ---
 
-## 1. Entity-Relationship (ER) Diagram
+## 1. Entity-Relationship Diagram
 
 ```mermaid
 erDiagram
@@ -14,7 +12,7 @@ erDiagram
     SITE ||--o{ WORKER : "houses active workers"
     SITE ||--o{ VIOLATION : "location of incident"
     WORKER ||--o{ VIOLATION : "commits non-compliance"
-    USER ||--o{ VIOLATION : "acknowledges (Supervisor)"
+    USER ||--o{ VIOLATION : "acknowledged by supervisor"
 
     SITE {
         ObjectId _id PK
@@ -74,100 +72,92 @@ erDiagram
 
 ---
 
-## 2. Collections & Schema Specifications
+## 2. Collections Overview
 
-### 2.1 `sites` Collection (`Site` Model)
-Stores physical construction sites, refineries, and infrastructure client projects.
+### `sites`
+Represents physical construction sites, manufacturing plants, or infrastructure projects.
 
-| Field | Type | Options / Constraints | Description |
+| Field | Type | Attributes | Description |
 | :--- | :--- | :--- | :--- |
-| `_id` | `ObjectId` | Primary Key, Auto-generated | Unique identifier for the site |
-| `name` | `String` | `required`, `trim`, `unique`, `maxlength: 100` | Human-readable site name (e.g. Apex Construction Hub) |
-| `code` | `String` | `required`, `trim`, `unique`, `uppercase` | Short unique code (e.g. `APEX-01`, `TITAN-02`) |
-| `location` | `String` | `required`, `trim` | Physical address or sector location |
-| `description`| `String` | `trim` | Project operational details |
-| `isActive` | `Boolean` | `default: true` | Soft-delete / active status flag |
-| `createdAt` | `Date` | Auto Timestamp | Schema creation timestamp |
-| `updatedAt` | `Date` | Auto Timestamp | Schema last update timestamp |
+| `_id` | `ObjectId` | PK | Primary identifier |
+| `name` | `String` | required, unique, trim | Full site name |
+| `code` | `String` | required, unique, uppercase | Short site code (e.g. APEX-01) |
+| `location` | `String` | required, trim | City or sector location |
+| `description` | `String` | trim | Project description |
+| `isActive` | `Boolean` | default: true | Active status |
+| `timestamps` | `Date` | auto | Created / Updated timestamps |
 
 ---
 
-### 2.2 `users` Collection (`User` Model)
-Stores system authentication credentials and user profiles for Admins and Site Supervisors.
+### `users`
+Stores user credentials and roles for Admins and Supervisors.
 
-| Field | Type | Options / Constraints | Description |
+| Field | Type | Attributes | Description |
 | :--- | :--- | :--- | :--- |
-| `_id` | `ObjectId` | Primary Key, Auto-generated | Unique user ID |
-| `name` | `String` | `required`, `trim` | Full name of the user |
-| `email` | `String` | `required`, `trim`, `lowercase`, `unique` | User login email address |
-| `password` | `String` | `required`, `select: false` | Bcrypt hashed password (cost factor 10) |
-| `role` | `String` | `enum: ['ADMIN', 'SUPERVISOR']`, `default: 'SUPERVISOR'` | Role-based access control level |
-| `siteId` | `ObjectId` | `ref: 'Site'`, `default: null` | Foreign key referencing assigned Site (for Supervisors) |
-| `isActive` | `Boolean` | `default: true` | Account active flag |
-| `createdAt` | `Date` | Auto Timestamp | Record creation timestamp |
-| `updatedAt` | `Date` | Auto Timestamp | Record last update timestamp |
+| `_id` | `ObjectId` | PK | User ID |
+| `name` | `String` | required, trim | User full name |
+| `email` | `String` | required, unique, lowercase | Login email address |
+| `password` | `String` | required, select: false | Bcrypt hashed password |
+| `role` | `String` | enum: ['ADMIN', 'SUPERVISOR'] | Access level |
+| `siteId` | `ObjectId` | ref: 'Site', default: null | Assigned site (Supervisors only) |
+| `isActive` | `Boolean` | default: true | Account active flag |
+| `timestamps` | `Date` | auto | Created / Updated timestamps |
 
 ---
 
-### 2.3 `workers` Collection (`Worker` Model)
-Stores field personnel equipped with IoT telemetry wearables. Derived from the `workers_dataset.xlsx` dataset.
+### `workers`
+Stores field worker profiles imported from `workers_dataset.xlsx`.
 
-| Field | Type | Options / Constraints | Description |
+| Field | Type | Attributes | Description |
 | :--- | :--- | :--- | :--- |
-| `_id` | `ObjectId` | Primary Key, Auto-generated | Internal worker identifier |
-| `employeeId` | `String` | `required`, `trim`, `uppercase`, `unique` | Official Worker ID from company roster |
-| `name` | `String` | `required`, `trim` | Full name of the worker |
-| `siteId` | `ObjectId` | `ref: 'Site'`, `required` | Foreign key linking worker to current workplace site |
-| `iotDeviceId` | `String` | `required`, `trim`, `unique` | Hardware ID of assigned IoT safety monitor |
-| `jobProfile` | `String` | `trim`, `default: 'Field Operator'` | Operational designation |
-| `trade` | `String` | `trim`, `default: 'GENERAL_CONSTRUCTION'` | Trade specialty |
-| `department` | `String` | `trim` | Department designation |
-| `mobileNumber`| `String` | `trim` | Contact number |
-| `aadharNumber`| `String` | `trim` | Government identity number |
-| `status` | `String` | `enum: ['ACTIVE', 'INACTIVE', 'ON_LEAVE']`, `default: 'ACTIVE'` | Operational availability status |
-| `createdAt` | `Date` | Auto Timestamp | Record creation timestamp |
-| `updatedAt` | `Date` | Auto Timestamp | Record last update timestamp |
+| `_id` | `ObjectId` | PK | Worker ID |
+| `employeeId` | `String` | required, unique, uppercase | Worker employee code |
+| `name` | `String` | required, trim | Worker name |
+| `siteId` | `ObjectId` | ref: 'Site', required | Current site assignment |
+| `iotDeviceId` | `String` | required, unique | Paired IoT hardware ID |
+| `jobProfile` | `String` | trim | Job designation |
+| `trade` | `String` | trim | Skill trade category |
+| `department` | `String` | trim | Department |
+| `mobileNumber` | `String` | trim | Phone number |
+| `aadharNumber` | `String` | trim | Identity number |
+| `status` | `String` | enum: ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] | Employment status |
+| `timestamps` | `Date` | auto | Created / Updated timestamps |
 
-**Indexes:**
-- `{ siteId: 1 }`: Fast lookup of all workers assigned to a specific site.
+**Indexes**:
+- `{ siteId: 1 }`: Fast queries for site-specific workers.
 
 ---
 
-### 2.4 `violations` Collection (`Violation` Model)
-Stores non-compliance safety incidents transmitted by worker IoT devices.
+### `violations`
+Logs PPE non-compliance incidents sent by worker IoT devices or simulated.
 
-| Field | Type | Options / Constraints | Description |
+| Field | Type | Attributes | Description |
 | :--- | :--- | :--- | :--- |
-| `_id` | `ObjectId` | Primary Key, Auto-generated | Unique violation record ID |
-| `workerId` | `ObjectId` | `ref: 'Worker'`, `required` | Foreign key referencing offending worker |
-| `siteId` | `ObjectId` | `ref: 'Site'`, `required` | Foreign key referencing site where violation occurred |
-| `ppeType` | `String` | `enum: ['HELMET', 'VEST', 'GLOVES', 'SAFETY_GLASSES', 'BOOTS', 'HARNESS']` | Category of unequipped safety gear |
-| `severity` | `String` | `enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']`, `default: 'MEDIUM'` | Threat level rating |
-| `timestamp` | `Date` | `required`, `default: Date.now` | Time when IoT sensor detected safety infraction |
-| `status` | `String` | `enum: ['PENDING', 'ACKNOWLEDGED', 'ESCALATED']`, `default: 'PENDING'` | Lifecycle state of incident |
-| `acknowledgedBy`| `ObjectId` | `ref: 'User'`, `default: null` | Foreign key of Supervisor who acknowledged incident |
-| `acknowledgedAt`| `Date` | `default: null` | Time when supervisor clicked acknowledge button |
-| `escalatedToAdminAt`| `Date` | `default: null` | Time when system auto-escalated incident to Admin |
-| `notes` | `String` | `trim` | Contextual details / supervisor resolution note |
-| `createdAt` | `Date` | Auto Timestamp | Record creation timestamp |
-| `updatedAt` | `Date` | Auto Timestamp | Record last update timestamp |
+| `_id` | `ObjectId` | PK | Incident ID |
+| `workerId` | `ObjectId` | ref: 'Worker', required | Offending worker |
+| `siteId` | `ObjectId` | ref: 'Site', required | Site location |
+| `ppeType` | `String` | enum: HELMET, VEST, GLOVES, SAFETY_GLASSES, BOOTS, HARNESS | Missing PPE equipment |
+| `severity` | `String` | enum: LOW, MEDIUM, HIGH, CRITICAL | Risk severity level |
+| `timestamp` | `Date` | required, default: Date.now | Incident occurrence time |
+| `status` | `String` | enum: PENDING, ACKNOWLEDGED, ESCALATED | Current status |
+| `acknowledgedBy` | `ObjectId` | ref: 'User', default: null | Supervisor who acknowledged |
+| `acknowledgedAt` | `Date` | default: null | Acknowledgment timestamp |
+| `escalatedToAdminAt` | `Date` | default: null | Auto-escalation timestamp |
+| `notes` | `String` | trim | Resolution or event notes |
+| `timestamps` | `Date` | auto | Created / Updated timestamps |
 
-**Indexes:**
-- `{ status: 1, timestamp: 1 }`: Enables optimal query performance for the 10-minute escalation background process scanning `PENDING` items.
-- `{ siteId: 1, timestamp: -1 }`: Optimizes site-filtered supervisor violation dashboards.
-- `{ ppeType: 1, timestamp: -1 }`: Optimizes analytics aggregation grouped by PPE category.
-- `{ workerId: 1, timestamp: -1 }`: Enables fast history lookup per worker.
+**Indexes**:
+- `{ status: 1, timestamp: 1 }`: Optimizes the 10-minute escalation background scanner querying pending incidents.
+- `{ siteId: 1, timestamp: -1 }`: Speeds up supervisor site views.
+- `{ ppeType: 1, timestamp: -1 }`: Supports analytics aggregations by PPE type.
+- `{ workerId: 1, timestamp: -1 }`: Fast lookup of incident history per worker.
 
 ---
 
-## 3. Data Seeding & Dataset Ingestion Strategy
+## 3. Data Seeding Pipeline
 
-The database is populated using `backend/src/seeders/seed.js` via `npm run seed`.
-
-1. **Excel Parsing**: Uses `xlsx` (SheetJS) to import the provided `workers_dataset.xlsx`.
-2. **Entity Generation**:
-   - Generates initial operational client sites (`Apex Construction Hub`, `Titan Energy Refinery`, `Vanguard Infra Tunnel`).
-   - Creates default Admin account (`admin@workforce.com`) and Site Supervisors (`john.doe@workforce.com`, etc.).
-   - Maps each worker row from the dataset into the `Worker` model, auto-assigning unique IoT device IDs (`IOT-WRK0001`).
-3. **Simulation Data Seeding**:
-   - Injects realistic non-compliance incidents with varying timestamps (`PENDING`, `ACKNOWLEDGED`, `ESCALATED`) to populate dashboards and analytics charts immediately upon startup.
+The `backend/src/seeders/seed.js` script handles data population:
+1. Parses `backend/data/workers_dataset.xlsx` using the `xlsx` library.
+2. Creates default sites and user accounts (`ADMIN` and `SUPERVISOR`).
+3. Maps Excel rows into `Worker` documents and generates matching IoT device IDs (`IOT-WRK0001`).
+4. Injects initial violation records across various states (`PENDING`, `ACKNOWLEDGED`, `ESCALATED`) so dashboard charts render meaningful data immediately.

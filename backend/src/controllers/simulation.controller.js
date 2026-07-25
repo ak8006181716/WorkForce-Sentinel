@@ -4,7 +4,7 @@ import ApiResponse from '../utils/apiResponse.js';
 
 class SimulationController {
   /**
-   * POST /api/v1/simulation/trigger
+   * POST /api/simulation/trigger
    * Trigger single mock IoT violation creation
    */
   static async triggerViolation(req, res, next) {
@@ -26,7 +26,7 @@ class SimulationController {
   }
 
   /**
-   * POST /api/v1/simulation/escalate-now
+   * POST /api/simulation/escalate-now
    * Force trigger 10-minute escalation check now
    */
   static async forceEscalationCheck(req, res, next) {

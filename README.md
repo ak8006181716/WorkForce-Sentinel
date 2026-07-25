@@ -1,133 +1,127 @@
-# Workforce Management System (IoT PPE Monitoring & Escalation)
+# Workforce Management System
 
-A full-stack workforce operations and safety monitoring application built with **React 19**, **Vite**, **Tailwind CSS v4**, **Node.js (ES Modules)**, **Express**, and **MongoDB**.
+A full-stack workforce operations and safety monitoring web application built with React 19, Vite, Tailwind CSS v4, Node.js (Express), and MongoDB.
 
-Tracks field workers equipped with IoT safety wearables, logs Personal Protective Equipment (PPE) violations, and implements an automated **10-minute alert escalation engine** for unacknowledged incidents.
-
----
-
-## 📚 Project Documentation Quick Links
-
-- [📁 Database Schema Documentation](file:///e:/Assisment/docs/DATABASE_SCHEMA.md) *(Includes ER Diagram, Collections, & Field Specifications)*
-- [🔌 API Documentation](file:///e:/Assisment/docs/API_DOCUMENTATION.md) *(Endpoints, Request Bodies, Query Parameters, & JSON Payloads)*
-- [🏗️ System Architecture & Project Documentation](file:///e:/Assisment/docs/PROJECT_DOCUMENTATION.md) *(10-Min Escalation Workflow, RBAC Matrix, & Design Decisions)*
+The system tracks field workers using simulated IoT safety wearables, logs Personal Protective Equipment (PPE) non-compliance incidents, and triggers an automated 10-minute escalation workflow for unacknowledged alerts.
 
 ---
 
-## 🚀 Quick Features Overview
+## Documentation
 
-- **Secure JWT Authentication & RBAC**: Dedicated modules and dashboards for **Admin** and **Supervisor** roles.
+Detailed documentation is available in the `docs/` folder:
+
+- [Database Schema & ER Diagram](file:///e:/Assisment/docs/DATABASE_SCHEMA.md)
+- [API Reference](file:///e:/Assisment/docs/API_DOCUMENTATION.md)
+- [System Architecture & Escalation Design](file:///e:/Assisment/docs/PROJECT_DOCUMENTATION.md)
+
+---
+
+## Key Features
+
+- **Authentication & Role-Based Access (RBAC)**: Secure JWT login for Admins and Site Supervisors.
 - **Admin Portal**:
-  - Dashboard with key metrics (Total Workers, Supervisors, Violations, Escalated Alerts).
-  - Supervisor CRUD management & site re-assignment.
-  - Admin Alerts page displaying violations unacknowledged by supervisors for > 10 minutes.
-  - Data insights & operational analytics charts (Violations by Site, PPE Category, Severity, Trends).
+  - Dashboard with key metrics (workers, supervisors, total violations, escalated alerts).
+  - Supervisor management (create, update, reassign site).
+  - Alerts page listing violations unacknowledged by supervisors for > 10 minutes.
+  - Analytics charts (violations by site, PPE type, severity distribution, daily/monthly trends).
 - **Supervisor Portal**:
-  - Site-scoped dashboard (Today's, Pending, Acknowledged, Escalated counts).
-  - Worker non-compliance violation table with search, filters, and modal acknowledgment.
-  - Export audit logs to downloadable CSV format.
-- **10-Minute Escalation Engine**:
-  - Background service running every 30 seconds scanning for `PENDING` violations where `timestamp <= now - 10 minutes`.
-  - Automatically updates unacknowledged violations to `ESCALATED` status so they appear on the Admin Alerts page.
-- **IoT Data Dataset Ingestion & Real-Time Simulation**:
-  - Seed script parses `workers_dataset.xlsx` to populate worker profiles linked with hardware IoT devices.
-  - Built-in IoT stream simulator producing random live non-compliance events.
+  - Site-scoped dashboard metrics.
+  - Worker violations list with filters (PPE type, status, severity) and search.
+  - Modal interface to acknowledge violations with resolution notes.
+  - Export audit logs to CSV.
+- **Automated Escalation Service**:
+  - Background task scanning pending violations every 30 seconds.
+  - Automatically escalates any incident unacknowledged for over 10 minutes to the Admin portal.
+- **Data Ingestion & IoT Simulation**:
+  - Seed script parses `workers_dataset.xlsx` to populate initial workers, sites, and sample violations.
+  - Live simulation stream generates periodic IoT safety violation events.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Frontend**: React 19, Vite, Tailwind CSS v4, React Router v7, Axios, Recharts, Lucide Icons
-- **Backend**: Node.js (ES Modules), Express.js, MongoDB (Mongoose ORM), JWT, bcryptjs, json2csv, xlsx
-- **Database**: MongoDB (Local Instance / MongoDB Atlas)
+- **Frontend**: React 19, Vite, Tailwind CSS v4, React Router v7, Axios, Recharts, Lucide React
+- **Backend**: Node.js (ES Modules), Express.js, Mongoose (MongoDB ORM), JWT, bcryptjs, json2csv, xlsx
+- **Database**: MongoDB (Local or Atlas)
 
 ---
 
-## 📁 Repository Structure
+## Project Structure
 
-```text
-Assisment/
+```
+.
 ├── backend/
-│   ├── data/                   # Raw Excel dataset (workers_dataset.xlsx)
+│   ├── data/                   # Input dataset (workers_dataset.xlsx)
 │   ├── src/
-│   │   ├── config/             # DB connection & environment settings
-│   │   ├── controllers/        # Route controllers (Auth, Admin, Supervisor, Simulation)
+│   │   ├── config/             # DB & env config
+│   │   ├── controllers/        # Express route handlers
 │   │   ├── middleware/         # Auth, RBAC, error handling
 │   │   ├── models/             # Mongoose schemas (User, Site, Worker, Violation)
-│   │   ├── routes/             # REST API routing definitions
-│   │   ├── seeders/            # Excel parser & database seeder
-│   │   ├── services/           # Escalation cron & business logic
-│   │   ├── utils/              # Custom ApiError, ApiResponse, CSV helper
-│   │   ├── app.js              # Express application setup
-│   │   └── server.js           # Server entry point & background intervals
+│   │   ├── routes/             # API routes
+│   │   ├── seeders/            # Excel parser & seeder
+│   │   ├── services/           # Escalation worker & business logic
+│   │   ├── utils/              # Helper utilities (ApiError, ApiResponse, CSV)
+│   │   ├── app.js              # Express app setup
+│   │   └── server.js           # Server entry point & background tasks
 │   ├── package.json
 │   └── .env
 ├── frontend/
 │   ├── src/
-│   │   ├── api/                # Axios service modules
-│   │   ├── components/         # Reusable UI components & layouts
-│   │   ├── context/            # AuthContext & state management
-│   │   ├── pages/              # Admin & Supervisor portal views
-│   │   └── App.jsx             # React router setup
+│   │   ├── api/                # API client functions
+│   │   ├── components/         # Common UI & layouts
+│   │   ├── context/            # AuthContext state
+│   │   ├── pages/              # Admin & Supervisor pages
+│   │   └── App.jsx             # React routing setup
 │   └── package.json
-└── docs/                       # Project Documentation Suite
-    ├── DATABASE_SCHEMA.md      # ER Diagram & DB Specifications
-    ├── API_DOCUMENTATION.md    # Full REST API Reference
-    └── PROJECT_DOCUMENTATION.md# System Architecture & Workflows
+└── docs/                       # Project documentation
+    ├── DATABASE_SCHEMA.md
+    ├── API_DOCUMENTATION.md
+    └── PROJECT_DOCUMENTATION.md
 ```
 
 ---
 
-## ⚡ Local Setup & Execution Guide
+## Getting Started
 
 ### Prerequisites
-- **Node.js**: `v18.0.0` or higher
-- **MongoDB**: Local running MongoDB service (`mongodb://127.0.0.1:27017`) or a MongoDB Atlas Connection String.
+
+- Node.js (v18+)
+- MongoDB running locally on port 27017 or a MongoDB Atlas URI
 
 ### 1. Backend Setup
+
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Install dependencies
 npm install
-
-# Seed the database from workers_dataset.xlsx
-npm run seed
-
-# Start the development server (Runs on http://localhost:5000)
-npm run dev
+npm run seed     # Parses Excel dataset and seeds database
+npm run dev      # Starts server on http://localhost:5000
 ```
 
 ### 2. Frontend Setup
+
 ```bash
-# In a new terminal, navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the Vite development server (Runs on http://localhost:5173)
-npm run dev
+npm run dev      # Starts Vite dev server on http://localhost:5173
 ```
 
 ---
 
-## 🔑 Default Test Credentials
+## Default Accounts
 
 | Role | Email | Password | Site Access |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `admin@workforce.com` | `Password123!` | All Sites (Global View) |
+| **Admin** | `admin@workforce.com` | `Password123!` | All Sites |
 | **Supervisor** | `john.doe@workforce.com` | `Password123!` | Apex Construction Hub |
 | **Supervisor** | `sarah.connor@workforce.com` | `Password123!` | Titan Energy Refinery |
 | **Supervisor** | `michael.scott@workforce.com` | `Password123!` | Vanguard Infra Tunnel |
 
 ---
 
-## 🧪 Testing the 10-Minute Escalation Workflow
+## Testing Escalation
 
-1. Log in as **Supervisor** (`john.doe@workforce.com`).
-2. Observe newly generated violations on the **Violations** tab.
-3. Leave an incident unacknowledged for **10 minutes** (or send a POST request to `/api/v1/simulation/escalate-now` to trigger instant evaluation).
-4. Log in as **Admin** (`admin@workforce.com`) and navigate to the **Alerts** page.
-5. Notice that the unacknowledged incident has auto-escalated to `ESCALATED` status and is listed on the Admin Alerts screen.
+1. Sign in as supervisor (`john.doe@workforce.com`).
+2. Observe unacknowledged violations on the Violations page.
+3. If an incident remains unacknowledged for 10 minutes, the background service marks it as `ESCALATED`.
+4. Sign in as admin (`admin@workforce.com`) and navigate to the Alerts page to view the escalated alert.
+5. (Optional) Call `POST /api/simulation/escalate-now` to run the escalation scan manually.

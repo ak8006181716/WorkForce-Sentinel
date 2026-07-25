@@ -5,9 +5,6 @@ import Site from '../models/site.model.js';
 import ApiError from '../utils/apiError.js';
 
 class AdminService {
-  /**
-   * Admin Dashboard Key Metrics
-   */
   static async getDashboardMetrics() {
     const [totalWorkers, totalSupervisors, totalViolations, activeAlertsCount] = await Promise.all([
       Worker.countDocuments({ status: 'ACTIVE' }),
@@ -24,9 +21,6 @@ class AdminService {
     };
   }
 
-  /**
-   * Supervisor CRUD - List with pagination & filtering
-   */
   static async getSupervisors({ page = 1, limit = 10, search = '' }) {
     const query = { role: 'SUPERVISOR' };
 
@@ -37,15 +31,16 @@ class AdminService {
       ];
     }
 
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    const parsedLimit = parseInt(limit, 10);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
 
     const [supervisors, total] = await Promise.all([
       User.find(query)
         .populate('siteId', 'name code location')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parsedLimit),
+        .limit(limitNum),
       User.countDocuments(query),
     ]);
 
@@ -53,16 +48,13 @@ class AdminService {
       supervisors,
       pagination: {
         total,
-        page: parseInt(page, 10),
-        limit: parsedLimit,
-        pages: Math.ceil(total / parsedLimit) || 1,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum) || 1,
       },
     };
   }
 
-  /**
-   * Supervisor CRUD - Create Supervisor
-   */
   static async createSupervisor(data) {
     const { name, email, password, siteId } = data;
 
@@ -86,13 +78,9 @@ class AdminService {
       siteId: siteId || null,
     });
 
-    const populated = await User.findById(supervisor._id).populate('siteId', 'name code location');
-    return populated;
+    return User.findById(supervisor._id).populate('siteId', 'name code location');
   }
 
-  /**
-   * Supervisor CRUD - Update Supervisor
-   */
   static async updateSupervisor(id, data) {
     const { name, email, siteId, isActive } = data;
 
@@ -117,9 +105,6 @@ class AdminService {
     return User.findById(id).populate('siteId', 'name code location');
   }
 
-  /**
-   * Supervisor CRUD - Delete Supervisor
-   */
   static async deleteSupervisor(id) {
     const supervisor = await User.findById(id);
     if (!supervisor || supervisor.role !== 'SUPERVISOR') {
@@ -130,9 +115,6 @@ class AdminService {
     return { id };
   }
 
-  /**
-   * Admin Alerts Page (Escalated violations unacknowledged > 10 min)
-   */
   static async getEscalatedAlerts({ page = 1, limit = 10, search = '', siteId = '' }) {
     const query = { status: 'ESCALATED' };
 
@@ -140,10 +122,11 @@ class AdminService {
       query.siteId = siteId;
     }
 
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-    const parsedLimit = parseInt(limit, 10);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const skip = (pageNum - 1) * limitNum;
 
-    let pipeline = [
+    const pipeline = [
       { $match: query },
       {
         $lookup: {
@@ -183,7 +166,7 @@ class AdminService {
       ...pipeline,
       { $sort: { timestamp: -1 } },
       { $skip: skip },
-      { $limit: parsedLimit },
+      { $limit: limitNum },
     ];
 
     const [alertsResult, countResult] = await Promise.all([
@@ -197,18 +180,14 @@ class AdminService {
       alerts: alertsResult,
       pagination: {
         total,
-        page: parseInt(page, 10),
-        limit: parsedLimit,
-        pages: Math.ceil(total / parsedLimit) || 1,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum) || 1,
       },
     };
   }
 
-  /**
-   * Analytics & Data Insights Aggregation
-   */
   static async getInsights() {
-    // 1. Violations by Site
     const violationsBySite = await Violation.aggregate([
       {
         $group: {
@@ -235,7 +214,6 @@ class AdminService {
       { $sort: { count: -1 } },
     ]);
 
-    // 2. Violations by PPE Type
     const violationsByPPE = await Violation.aggregate([
       {
         $group: {
@@ -253,7 +231,6 @@ class AdminService {
       { $sort: { count: -1 } },
     ]);
 
-    // 3. Daily Violations (Last 14 days)
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
@@ -283,7 +260,6 @@ class AdminService {
       },
     ]);
 
-    // 4. Monthly Violations (Last 12 months)
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
